@@ -226,17 +226,16 @@ class Client:
         async with state.proxy() as data:
             data['delete_manufacturer'] = message.text
             data['delete_user_id'] = message.from_user.id
-        try:
-            await self.database.delete_model_sql(state)
+        if await self.database.delete_model_sql(state) is not None:
             await self.bot.send_message(message.from_user.id,
                                         f"Модель {data['delete_model']} от производителя {data['delete_manufacturer']} уcпешно удалена!",
                                         reply_markup=self.menu)
-            await state.finish()
-        except Exception:
-            await self.bot.send_message(message.from_user.id, "Возможно вы не добавляли модель и она не удалилась.\n"
-                                                              "Используйте команду: /expense_date, чтобы посмотреть ваши добавленные модели сервеного оборудования",
-                                        reply_markup=self.menu)
-            await state.finish()
+        else:
+            await self.bot.send_message(message.from_user.id,
+                                            "Возможно вы не добавляли модель и она не удалилась.\n"
+                                            "Используйте команду: /expense_date, чтобы посмотреть ваши добавленные модели сервеного оборудования",
+                                            reply_markup=self.menu)
+        await state.finish()
 
     async def minimum_amount_user(self, message: types.Message):
         expenses = await self.database.expense_data_sql(message.from_user.id)
