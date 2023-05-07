@@ -58,9 +58,15 @@ class Database:
 
     async def delete_model_sql(self, state):
         async with state.proxy() as data:
-            self.cur.execute("DELETE FROM users WHERE id=? AND model=?", (data["delete_user_id"], data["delete_model"]))
-            self.cur.execute("DELETE FROM models WHERE id=? AND model=? AND manufacturer=?", (data["delete_user_id"], data["delete_model"], data["delete_manufacturer"]))
-            self.base.commit()
+            data_db = self.cur.execute("SELECT id FROM models WHERE id=? AND model=? AND manufacturer=?",
+                             (data["delete_user_id"], data["delete_model"], data["delete_manufacturer"])).fetchall()
+            if len(data_db) == 0:
+                return None
+            else:
+                self.cur.execute("DELETE FROM users WHERE id=? AND model=?", (data["delete_user_id"], data["delete_model"]))
+                self.cur.execute("DELETE FROM models WHERE id=? AND model=? AND manufacturer=?", (data["delete_user_id"], data["delete_model"], data["delete_manufacturer"]))
+                self.base.commit()
+                return True
 
     async def get_minimum_amount(self, user_id):
         return self.cur.execute(
