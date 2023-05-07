@@ -244,8 +244,8 @@ class Client:
             await self.bot.send_message(message.from_user.id,
                                         "У вас еще нет добавленых моделей сервеного оборудования.\nИспользуйте команду /add_equipment, чтобы добавить оборудование.")
         else:
-            mn = self.database.get_minimum_amount(message.from_user.id)
-            await self.bot.send_message(message.from_user.id, f"Самое выгодное серверное оборудование:\n\n"
+            mn = await self.database.get_minimum_amount(message.from_user.id)
+            await self.bot.send_message(message.from_user.id, f"Самое выгодное серверное оборудование:\n"
                                                               f"Название модели: \n{mn[0]}.\n\n"
                                                               f"Производитель модели: \n{mn[1]}.\n\n"
                                                               f"Расходы на электроэнергию: \n{mn[2]} Р.\n\n"
