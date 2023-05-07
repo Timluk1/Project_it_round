@@ -81,7 +81,7 @@ class Client:
             elif "Помощь" in message.text:
                 pass
             elif "Расходы":
-                expenses = self.database.expense_data_sql(message.from_user.id)
+                expenses = await self.database.expense_data_sql(message.from_user.id)
                 if len(expenses) == 0:
                     await self.bot.send_message(message.from_user.id,
                                                 "У вас еще нет добавленых моделей сервеного оборудования.\nИспользуйте команду /add_equipment, чтобы добавить оборудование.")
@@ -98,7 +98,7 @@ class Client:
                     await self.bot.send_message(message.from_user.id,
                                                 f"Суммарная трата на все оборудование: \n{round(sm, 2)}")
         elif "Удалить модель ❌" in message.text:
-            expenses = self.database.expense_data_sql(message.from_user.id)
+            expenses = await self.database.expense_data_sql(message.from_user.id)
             if len(expenses) == 0:
                 await self.bot.send_message(message.from_user.id,
                                             "У вас еще нет добавленых моделей сервеного оборудования.\nИспользуйте команду /add_equipment, чтобы добавить оборудование.")
@@ -107,12 +107,12 @@ class Client:
                 await self.bot.send_message(message.from_user.id, "Введите название модели", reply_markup=self.kb)
 
         elif "Выгодная модель 🏷️" in message.text:
-            expenses = self.database.expense_data_sql(message.from_user.id)
+            expenses = await self.database.expense_data_sql(message.from_user.id)
             if len(expenses) == 0:
                 await self.bot.send_message(message.from_user.id,
                                             "У вас еще нет добавленых моделей сервеного оборудования.\nИспользуйте команду /add_equipment, чтобы добавить оборудование.")
             else:
-                mn = self.database.get_minimum_amount(message.from_user.id)
+                mn = await self.database.get_minimum_amount(message.from_user.id)
                 await self.bot.send_message(message.from_user.id, f"Самое выгодное серверное оборудование:\n"
                                                                   f"Название модели: \n{mn[0]}.\n\n"
                                                                   f"Производитель модели: \n{mn[1]}.\n\n"
@@ -179,18 +179,19 @@ class Client:
     async def additional_expenses(self, message: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data['additional_expenses'] = float(message.text)
-        if self.database.server_hardware_in_db(data["model"], message.from_user.id):
-            self.database.add_quantity(data["model"], message.from_user.id, data["manufacturer"])
+            data['user_id'] = message.from_user.id
+        if await self.database.server_hardware_in_db(state):
+            await self.database.add_quantity(state)
             await self.bot.send_message(message.from_user.id, "Данные успешно добавлены в БД", reply_markup=self.menu)
         else:
-            self.database.add_server_hardware(data, message.from_user.id, 1)
+            await self.database.add_server_hardware(state,  1)
             await self.bot.send_message(message.from_user.id, "Данные успешно добавлены в БД", reply_markup=self.menu)
 
             # Завершаем процесс добавления оборудования
         await state.finish()
 
     async def expense_data(self, message: types.Message):
-        expenses = self.database.expense_data_sql(message.from_user.id)
+        expenses = await self.database.expense_data_sql(message.from_user.id)
         if len(expenses) == 0:
             await self.bot.send_message(message.from_user.id,
                                         "У вас еще нет добавленых моделей сервеного оборудования.\nИспользуйте команду /add_equipment, чтобы добавить оборудование.")
@@ -208,7 +209,7 @@ class Client:
                                         f"Суммарная трата на все оборудование \n{round(sm, 2)}")
 
     async def delete_model_start(self, message: types.Message):
-        expenses = self.database.expense_data_sql(message.from_user.id)
+        expenses = await self.database.expense_data_sql(message.from_user.id)
         if len(expenses) == 0:
             await self.bot.send_message(message.from_user.id,
                                         "У вас еще нет добавленых моделей сервеного оборудования.\nИспользуйте команду /add_equipment, чтобы добавить оборудование.")
@@ -225,8 +226,9 @@ class Client:
     async def delete_model_manufacturer(self, message: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data['delete_manufacturer'] = message.text
+            data['delete_user_id'] = message.from_user.id
         try:
-            self.database.delete_model_sql(message.from_user.id, data["delete_model"], data["delete_manufacturer"])
+            await self.database.delete_model_sql(state)
             await self.bot.send_message(message.from_user.id,
                                         f"Модель {data['delete_model']} от производителя {data['delete_manufacturer']} уcпешно удалена!",
                                         reply_markup=self.menu)
@@ -238,7 +240,7 @@ class Client:
             await state.finish()
 
     async def minimum_amount_user(self, message: types.Message):
-        expenses = self.database.expense_data_sql(message.from_user.id)
+        expenses = await self.database.expense_data_sql(message.from_user.id)
         if len(expenses) == 0:
             await self.bot.send_message(message.from_user.id,
                                         "У вас еще нет добавленых моделей сервеного оборудования.\nИспользуйте команду /add_equipment, чтобы добавить оборудование.")
@@ -282,6 +284,6 @@ class Client:
 
 
 if __name__ == "__main__":
-    client = Client("token")
+    client = Client("5762130910:AAGmI6Alyh8_6OkqvoX7b1i1TZKCM3ICPas")
     client.register_admin_handlers(client.dp)
     executor.start_polling(client.dp, skip_updates=True)
